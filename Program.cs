@@ -49,10 +49,10 @@ namespace TextEditor
 
         private void CheckForNewRowThroughChar()
         {
-            var currentPos = Console.GetCursorPosition();
-            if (currentPos.Top != cursorRow)
+            var (_, Top) = Console.GetCursorPosition();
+            if (Top != cursorRow)
             {
-                cursorRow = currentPos.Top;
+                cursorRow = Top;
                 columnsIntheCurrentRow = 0;
                 numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
                 totalRows++;
@@ -82,7 +82,26 @@ namespace TextEditor
             {
                 if(newColumn > numberOfColumnsPerRow[newRow])
                 {
-                    newColumn = numberOfColumnsPerRow[newRow];
+                    if(newRow + 1 <= totalRows && rowOffset == 0)
+                    {
+                        newRow += 1;
+                        newColumn = 0;
+                    }
+                    else
+                    {
+                        newColumn = numberOfColumnsPerRow[newRow];
+                    }
+                }
+                else if(newColumn < 0){
+                    if (newRow - 1 >= 0 && rowOffset == 0)
+                    {
+                        newRow -= 1;
+                        newColumn = numberOfColumnsPerRow[newRow];
+                    }
+                    else
+                    {
+                        newColumn = 0;
+                    }
                 }
                 cursorRow = newRow;
                 Console.SetCursorPosition(newColumn, newRow);
@@ -91,7 +110,7 @@ namespace TextEditor
 
         private bool NewPositionInsideBounds(int newRow, int newColumn)
         {
-            return newRow <= totalRows && newRow >= 0 && newColumn >= 0;
+            return newRow <= totalRows && newRow >= 0;
         }
     }
 }
