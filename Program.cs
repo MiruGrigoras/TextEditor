@@ -6,6 +6,9 @@ namespace TextEditor
         int totalRows;
         int columnsIntheCurrentRow;
         int cursorRow;
+        
+        // contains each row key and the number of coresponding characters on that row 
+        Dictionary<int, int> numberOfColumnsPerRow = new Dictionary<int, int>();
 
         public TextEditor()
         {
@@ -38,24 +41,26 @@ namespace TextEditor
                         editor.ArrowMoveCursor(1, 0);
                         break;
                     default: 
-                        editor.checkForNewRowThroughChar();
+                        editor.CheckForNewRowThroughChar();
                         break;
                 }
             } while (consoleInput.Key != ConsoleKey.Escape); //close app on ESC
         }
 
-        private void checkForNewRowThroughChar()
+        private void CheckForNewRowThroughChar()
         {
             var currentPos = Console.GetCursorPosition();
             if (currentPos.Top != cursorRow)
             {
                 cursorRow = currentPos.Top;
                 columnsIntheCurrentRow = 0;
+                numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
                 totalRows++;
             }
             else
             {
                 columnsIntheCurrentRow++;
+                numberOfColumnsPerRow[cursorRow] = columnsIntheCurrentRow;
             }
         }
 
@@ -64,6 +69,7 @@ namespace TextEditor
             cursorRow += 1;
             totalRows++;
             columnsIntheCurrentRow = 0;
+            numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
             Console.SetCursorPosition(0, cursorRow);
         }
 
@@ -71,8 +77,13 @@ namespace TextEditor
         {
             int newRow = cursorRow + rowOffset;
             int newColumn = Console.GetCursorPosition().Left + columnOffset;
+            
             if (NewPositionInsideBounds(newRow, newColumn))
             {
+                if(newColumn > numberOfColumnsPerRow[newRow])
+                {
+                    newColumn = numberOfColumnsPerRow[newRow];
+                }
                 cursorRow = newRow;
                 Console.SetCursorPosition(newColumn, newRow);
             }
@@ -80,7 +91,7 @@ namespace TextEditor
 
         private bool NewPositionInsideBounds(int newRow, int newColumn)
         {
-            return newRow <= totalRows && newRow >= 0 && newColumn <= columnsIntheCurrentRow && newColumn >= 0;
+            return newRow <= totalRows && newRow >= 0 && newColumn >= 0;
         }
     }
 }
