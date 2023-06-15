@@ -17,6 +17,7 @@ namespace TextEditor
         {
             TextEditor editor = new();
             ConsoleKeyInfo consoleInput;
+
             do
             {
                 consoleInput = Console.ReadKey();
@@ -28,26 +29,34 @@ namespace TextEditor
                         editor.EnterMoveCursor();
                         break;
                     case ConsoleKey.DownArrow:
-                        //Console.WriteLine("Down");
                         editor.ArrowMoveCursor(0, 1);
                         break;
                     case ConsoleKey.UpArrow:
-                        //Console.WriteLine("Up");
                         editor.ArrowMoveCursor(0, -1);
                         break;
                     case ConsoleKey.LeftArrow:
-                        //Console.WriteLine("Left");
                         editor.ArrowMoveCursor(1, 0);
                         break;
                     case ConsoleKey.RightArrow:
-                        //Console.WriteLine("Right");
                         editor.ArrowMoveCursor(-1, 0);
                         break;
+                    default: break;
                 }
+                editor.checkForNewRowThroughChar();
 
 
             } while (consoleInput.Key != ConsoleKey.Escape); //close app on ESC
-            Console.WriteLine("\nTotal lines and columns" + editor.totalRows + " - " + editor.totalColumns);
+            
+        }
+
+        private void checkForNewRowThroughChar()
+        {
+            var currentPos = Console.GetCursorPosition();
+            if(currentPos.Top != cursorRow)
+            {
+                cursorRow = currentPos.Top;
+                totalRows++;
+            }
         }
 
         private void EnterMoveCursor()
@@ -72,16 +81,6 @@ namespace TextEditor
         private bool NewPositionInsideBounds(int newRow, int newColumn)
         {
             return newRow <= totalRows && newRow >= 0 && newColumn <= totalColumns && newColumn >= 0;
-        }
-
-        private void AddNewRow()
-        {
-            totalRows++;
-        }
-
-        private void AddNewColumn()
-        {
-            totalRows++;
         }
     }
 }
