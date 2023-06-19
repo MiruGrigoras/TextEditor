@@ -11,8 +11,6 @@
     }
     class TextEditor
     {
-        int totalRows;
-        int columnsIntheCurrentRow;
         int cursorRow;
         List<InputKey> inputKeys = new List<InputKey>(); 
         
@@ -21,8 +19,6 @@
 
         public TextEditor()
         {
-             cursorRow = totalRows = Console.CursorTop;
-             columnsIntheCurrentRow = Console.CursorLeft;
         }
         static void Main(string[] args)
         {
@@ -36,8 +32,15 @@
                 switch (consoleInput.Key)
                 {
                     case ConsoleKey.Enter:
-                        editor.inputKeys.Add(new InputKey(consoleInput));
-                        editor.EnterMoveCursor();
+                        if(editor.IsAddedMidParagraph(cursorLeft, cursorTop))
+                        {
+                            editor.HandleMidParagraphEnter(consoleInput, cursorLeft, cursorTop);   
+                        }
+                        else
+                        {
+                            editor.inputKeys.Add(new InputKey(consoleInput));
+                            editor.EnterMoveCursor();
+                        }
                         break;
                     case ConsoleKey.DownArrow:
                         editor.ArrowMoveCursor(0, 1);
@@ -56,7 +59,6 @@
                             editor.HandleParagraphBackspace();
                         else if (cursorLeft != 0) //we delete midline
                             editor.HandleLiniarBackspace();
-                        
                         break;
                     default:
                         if (editor.IsAddedMidParagraph(cursorLeft, cursorTop))
@@ -68,26 +70,54 @@
                             editor.inputKeys.Add(new InputKey(consoleInput));
                             editor.CheckForNewRowThroughChar();
                         }
+                        
                         break;
                 }
             } while (consoleInput.Key != ConsoleKey.Escape); //close app on ESC
         }
 
+        private void HandleMidParagraphEnter(ConsoleKeyInfo key, int initialCursorLeft, int initialCursorTop)
+        {
+            int newEnterIndex = GetCurrentKeyIndex(initialCursorLeft, initialCursorTop);
+            inputKeys.Insert(newEnterIndex, new InputKey(key));
+
+            Console.Clear();
+            DisplayInputKeys(0);
+
+
+            //regulate numberOfColumnsPerRow
+            ArrangeNumberOfColumnsPerRowWhenLineAdded(initialCursorTop + 1);
+            numberOfColumnsPerRow[initialCursorTop + 1] = numberOfColumnsPerRow[initialCursorTop] - initialCursorLeft;
+            numberOfColumnsPerRow[initialCursorTop] = initialCursorLeft + 1;
+            cursorRow += 1;
+
+            Console.SetCursorPosition(0, cursorRow);
+        }
+
         private void HandleMidParagraphInsertion(ConsoleKeyInfo key)
         {
             var (cursorLeft, cursorTop) = Console.GetCursorPosition();
-            int newKeyIndex = GetCurrentKeyIndex(cursorLeft, cursorTop)-1;
+            int newKeyIndex = GetCurrentKeyIndex(cursorLeft, cursorTop);
 
+            int indexOfEndChar = inputKeys.Count - 1;
             //save in the indexKeys
-            inputKeys.Insert(newKeyIndex, new InputKey(key));
+            if (inputKeys[newKeyIndex - 2].key.Key.ToString() == "Enter")
+            {
+                inputKeys.Insert(newKeyIndex - 1, new InputKey(key));
+                indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
+                DisplayInputKeys(newKeyIndex, indexOfEndChar);
+            }
+            else
+            {
+                inputKeys.Insert(newKeyIndex, new InputKey(key));
+                indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
+                DisplayInputKeys(newKeyIndex+1, indexOfEndChar);    
+            }
 
             //update numberOfColumnsPerRow depending on if new row is formed or not
-            int indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
-            DisplayInputKeys(newKeyIndex+1, indexOfEndChar);
 
             if (IsOnNewRow(indexOfEndChar))
             {
-                columnsIntheCurrentRow = 1;
                 if (numberOfColumnsPerRow.ContainsKey(cursorRow))
                 {
                     for (int i = numberOfColumnsPerRow.Count - 1; i >= cursorRow; i--)
@@ -95,8 +125,7 @@
                         ChangeKey(numberOfColumnsPerRow, i, i + 1);
                     }
                 }
-                numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
-                totalRows++;
+                numberOfColumnsPerRow.Add(cursorRow, 1);
             }
             else
             {
@@ -112,7 +141,7 @@
             var (_, cursorTop) = Console.GetCursorPosition();
             cursorRow = cursorTop;
             int oldRowOfEndChar = GetRowOfChar(indexOfEndChar);
-            return cursorRow != oldRowOfEndChar;
+            return cursorRow > oldRowOfEndChar;
         }
 
         private int GetRowOfChar(int indexOfEndChar)
@@ -158,12 +187,35 @@
 
             //update numberOfColumnsPerRow
             numberOfColumnsPerRow[cursorTop - 1] = initialNoColumns + numberOfColumnsPerRow[cursorTop];
+            ArrangeNumberOfColumnsPerRowWhenLineDeleted(cursorTop);
             cursorRow = cursorTop - 1;
             Console.Clear();
             DisplayInputKeys(0);
             Console.Write(' ');
             Console.SetCursorPosition(initialNoColumns, cursorRow);
         }
+
+        private void ArrangeNumberOfColumnsPerRowWhenLineDeleted(int startingRow)
+        {
+            int i;
+            for (i = startingRow; i < numberOfColumnsPerRow.Count - 1; i++)
+            {
+                numberOfColumnsPerRow[i] = numberOfColumnsPerRow[i + 1];
+            }
+            numberOfColumnsPerRow.Remove(i);
+        }
+
+        private void ArrangeNumberOfColumnsPerRowWhenLineAdded(int startingRow)
+        {
+            numberOfColumnsPerRow.Add(numberOfColumnsPerRow.Count, 0);
+            int i;
+            for (i = numberOfColumnsPerRow.Count-1; i > startingRow; i++)
+            {
+                numberOfColumnsPerRow[i] = numberOfColumnsPerRow[i - 1];
+            }
+
+        }
+
         private int GetCurrentKeyIndex(int startingPosition, int cursorTop)
         {
             int keyIndex = startingPosition;
@@ -177,14 +229,14 @@
         {
             for (int i = startingPosition; i < inputKeys.Count; i++)
                 if (inputKeys[i].key.Key.ToString() == "Enter")
-                    Console.Write(" \n");
+                    Console.Write("\n");
                 else Console.Write(inputKeys[i].key.KeyChar);
         }
         private void DisplayInputKeys(int startingPosition, int endingPosition)
         {
             for (int i = startingPosition; i <= endingPosition; i++)
                 if (inputKeys[i].key.Key.ToString() == "Enter")
-                    Console.Write(" \n");
+                    Console.Write("\n");
                 else Console.Write(inputKeys[i].key.KeyChar);
         }
 
@@ -207,6 +259,7 @@
                     Console.Write(' ');
                     Console.SetCursorPosition(cursorLeft, cursorTop);
                 }
+
                 numberOfColumnsPerRow[cursorRow]--;
             }
             
@@ -225,32 +278,30 @@
             if (Top != cursorRow)
             {
                 cursorRow = Top;
-                columnsIntheCurrentRow = 1;
                 if (numberOfColumnsPerRow.ContainsKey(cursorRow)){
                     for(int i = numberOfColumnsPerRow.Count-1; i>=cursorRow; i--)
                     {
                         ChangeKey(numberOfColumnsPerRow, i, i + 1);
                     }
                 }
-                numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
-                totalRows++;
+                numberOfColumnsPerRow.Add(cursorRow, 1);
             }
             else
             {
-                columnsIntheCurrentRow++;
-                numberOfColumnsPerRow[cursorRow] = columnsIntheCurrentRow;
+                if (numberOfColumnsPerRow.ContainsKey(cursorRow))
+                {
+                    numberOfColumnsPerRow[cursorRow] += 1;
+                }
+                else
+                    numberOfColumnsPerRow.Add(cursorRow, 1);
             }
         }
 
         private void EnterMoveCursor()
         {
-
-            columnsIntheCurrentRow++;
-            numberOfColumnsPerRow[cursorRow] = columnsIntheCurrentRow;
+            numberOfColumnsPerRow[cursorRow] += 1;
             cursorRow += 1;
-            totalRows++;
-            columnsIntheCurrentRow = 0;
-            numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
+            numberOfColumnsPerRow.Add(cursorRow, 0);
             Console.SetCursorPosition(0, cursorRow);
         }
 
@@ -259,11 +310,11 @@
             int newRow = cursorRow + rowOffset;
             int newColumn = Console.GetCursorPosition().Left + columnOffset;
             
-            if (NewPositionInsideBounds(newRow, newColumn))
+            if (NewPositionInsideBounds(newRow))
             {
                 if(newColumn > numberOfColumnsPerRow[newRow])
                 {
-                    if(newRow + 1 <= totalRows && rowOffset == 0)
+                    if(newRow + 1 <= numberOfColumnsPerRow.Count && rowOffset == 0)
                     {
                         newRow += 1;
                         newColumn = 0;
@@ -289,9 +340,9 @@
             }
         }
 
-        private bool NewPositionInsideBounds(int newRow, int newColumn)
+        private bool NewPositionInsideBounds(int newRow)
         {
-            return newRow <= totalRows && newRow >= 0;
+            return newRow < numberOfColumnsPerRow.Count && newRow >= 0;
         }
     }
 }
