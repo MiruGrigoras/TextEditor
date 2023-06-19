@@ -3,14 +3,10 @@
     struct InputKey
     {
         public ConsoleKeyInfo key { get; init; }
-        public int row { get; init; }
-        public int col { get; init; }
 
-        public InputKey(ConsoleKeyInfo key, int row, int col)
+        public InputKey(ConsoleKeyInfo key)
         {
             this.key = key;
-            this.row = row;
-            this.col = col;
         }
     }
     class TextEditor
@@ -40,7 +36,7 @@
                 switch (consoleInput.Key)
                 {
                     case ConsoleKey.Enter:
-                        editor.inputKeys.Add(new InputKey(consoleInput, cursorTop, cursorLeft));
+                        editor.inputKeys.Add(new InputKey(consoleInput));
                         editor.EnterMoveCursor();
                         break;
                     case ConsoleKey.DownArrow:
@@ -60,13 +56,90 @@
                             editor.HandleParagraphBackspace();
                         else if (cursorLeft != 0) //we delete midline
                             editor.HandleLiniarBackspace();
+                        
                         break;
-                    default: 
-                        editor.inputKeys.Add(new InputKey(consoleInput, cursorTop, cursorLeft));
-                        editor.CheckForNewRowThroughChar();
+                    default:
+                        if (editor.IsAddedMidParagraph(cursorLeft, cursorTop))
+                        {
+                            editor.HandleMidParagraphInsertion(consoleInput);
+                        }
+                        else
+                        {
+                            editor.inputKeys.Add(new InputKey(consoleInput));
+                            editor.CheckForNewRowThroughChar();
+                        }
                         break;
                 }
             } while (consoleInput.Key != ConsoleKey.Escape); //close app on ESC
+        }
+
+        private void HandleMidParagraphInsertion(ConsoleKeyInfo key)
+        {
+            var (cursorLeft, cursorTop) = Console.GetCursorPosition();
+            int newKeyIndex = GetCurrentKeyIndex(cursorLeft, cursorTop)-1;
+
+            //save in the indexKeys
+            inputKeys.Insert(newKeyIndex, new InputKey(key));
+
+            //update numberOfColumnsPerRow depending on if new row is formed or not
+            int indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
+            DisplayInputKeys(newKeyIndex+1, indexOfEndChar);
+
+            if (IsOnNewRow(indexOfEndChar))
+            {
+                columnsIntheCurrentRow = 1;
+                if (numberOfColumnsPerRow.ContainsKey(cursorRow))
+                {
+                    for (int i = numberOfColumnsPerRow.Count - 1; i >= cursorRow; i--)
+                    {
+                        ChangeKey(numberOfColumnsPerRow, i, i + 1);
+                    }
+                }
+                numberOfColumnsPerRow.Add(cursorRow, columnsIntheCurrentRow);
+                totalRows++;
+            }
+            else
+            {
+                numberOfColumnsPerRow[cursorTop]++;
+            }
+
+            DisplayInputKeys(indexOfEndChar + 1);
+            Console.SetCursorPosition(cursorLeft, cursorTop);
+        }
+
+        private bool IsOnNewRow(int indexOfEndChar)
+        {
+            var (_, cursorTop) = Console.GetCursorPosition();
+            cursorRow = cursorTop;
+            int oldRowOfEndChar = GetRowOfChar(indexOfEndChar);
+            return cursorRow != oldRowOfEndChar;
+        }
+
+        private int GetRowOfChar(int indexOfEndChar)
+        {
+            int row = 0;
+            for (int i = 0; i < numberOfColumnsPerRow.Count && indexOfEndChar > numberOfColumnsPerRow[i]; i++)
+            {
+                indexOfEndChar -= numberOfColumnsPerRow[i];
+                row++;
+            }
+            return row;
+        }
+
+        private int GetIndexOfLastCharInParagraph(int newKeyIndex)
+        {
+            int indexOfNextEnter = inputKeys.FindIndex(newKeyIndex, inputKeys.Count - newKeyIndex, (key) => key.key.Key.ToString() == "Enter");
+            if(indexOfNextEnter == -1)
+            {
+                return inputKeys.Count - 1; //the new element has already been added into inputKeys
+            }   
+            return indexOfNextEnter;
+        }
+
+        private bool IsAddedMidParagraph(int cursorLeft, int cursorTop)
+        {
+            int currentKeyIndex = inputKeys.Count == 0 ? 0 : GetCurrentKeyIndex(cursorLeft, cursorTop);
+            return currentKeyIndex < inputKeys.Count;
         }
 
         private void HandleParagraphBackspace()
@@ -107,6 +180,14 @@
                     Console.Write(" \n");
                 else Console.Write(inputKeys[i].key.KeyChar);
         }
+        private void DisplayInputKeys(int startingPosition, int endingPosition)
+        {
+            for (int i = startingPosition; i <= endingPosition; i++)
+                if (inputKeys[i].key.Key.ToString() == "Enter")
+                    Console.Write(" \n");
+                else Console.Write(inputKeys[i].key.KeyChar);
+        }
+
         private void HandleLiniarBackspace()
         {
             //Backspace already knows to move the cursor once to the left
@@ -130,24 +211,13 @@
             }
             
         }
-
-        private void RewriteText()
-        {
-            Console.Clear();
-            foreach(var key in inputKeys)
-            {
-                Console.Write(key.key.KeyChar);
-            }
-        }
-
-        private void ChangeKey<TKey, TValue>(IDictionary<TKey, TValue> dic,
+        private static void ChangeKey<TKey, TValue>(IDictionary<TKey, TValue> dic,
                                       TKey fromKey, TKey toKey)
         {
             TValue value = dic[fromKey];
             dic.Remove(fromKey);
             dic[toKey] = value;
         }
-
         private void CheckForNewRowThroughChar()
         {
             var (_, Top) = Console.GetCursorPosition();
