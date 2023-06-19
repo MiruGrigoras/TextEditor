@@ -99,20 +99,11 @@
             var (cursorLeft, cursorTop) = Console.GetCursorPosition();
             int newKeyIndex = GetCurrentKeyIndex(initialCursorLeft, initialCursorTop);
 
-            int indexOfEndChar = inputKeys.Count - 1;
+            int indexOfEndChar;
             //save in the indexKeys
-            if (inputKeys[newKeyIndex - 1].key.Key.ToString() == "Enter")
-            {
-                inputKeys.Insert(newKeyIndex, new InputKey(key));
-                indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
-                DisplayInputKeys(newKeyIndex+1, indexOfEndChar);
-            }
-            else
-            {
-                inputKeys.Insert(newKeyIndex, new InputKey(key));
-                indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
-                DisplayInputKeys(newKeyIndex+1, indexOfEndChar);    
-            }
+            inputKeys.Insert(newKeyIndex, new InputKey(key));
+            indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
+            DisplayInputKeys(newKeyIndex+1, indexOfEndChar);
 
             //update numberOfColumnsPerRow depending on if new row is formed or not
 
@@ -126,14 +117,15 @@
                     }
                 }
                 numberOfColumnsPerRow.Add(cursorRow, 1);
+                Console.SetCursorPosition(0, cursorRow);
             }
             else
             {
-                numberOfColumnsPerRow[cursorTop]++;
+                numberOfColumnsPerRow[initialCursorTop]++;
+                Console.SetCursorPosition(cursorLeft, cursorTop);
             }
 
             DisplayInputKeys(indexOfEndChar + 1);
-            Console.SetCursorPosition(cursorLeft, cursorTop);
         }
 
         private bool IsOnNewRow(int indexOfEndChar)
