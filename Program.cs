@@ -118,10 +118,11 @@
         private void CheckForNewRowThroughChar()
         {
             var (_, Top) = Console.GetCursorPosition();
+
             if (Top != cursorRow)
             {
                 cursorRow = Top;
-                columnsIntheCurrentRow = 0;
+                columnsIntheCurrentRow = 1;
                 if (numberOfColumnsPerRow.ContainsKey(cursorRow)){
                     for(int i = numberOfColumnsPerRow.Count-1; i>=cursorRow; i--)
                     {
