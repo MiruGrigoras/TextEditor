@@ -35,11 +35,12 @@
 
             do
             {
+                var (cursorLeft, cursorTop) = Console.GetCursorPosition();
                 consoleInput = Console.ReadKey();
                 switch (consoleInput.Key)
                 {
                     case ConsoleKey.Enter:
-                        editor.inputKeys.Add(new InputKey(consoleInput, Console.GetCursorPosition().Top, Console.GetCursorPosition().Left));
+                        editor.inputKeys.Add(new InputKey(consoleInput, cursorTop, cursorLeft));
                         editor.EnterMoveCursor();
                         break;
                     case ConsoleKey.DownArrow:
@@ -55,27 +56,63 @@
                         editor.ArrowMoveCursor(1, 0);
                         break;
                     case ConsoleKey.Backspace:
-                        editor.HandleBackspace();
+                        if (cursorLeft == 0 && cursorTop != 0) //deletion of ENTER across paragraphs
+                            editor.HandleParagraphBackspace();
+                        else if (cursorLeft != 0) //we delete midline
+                            editor.HandleLiniarBackspace();
                         break;
                     default: 
-                        editor.inputKeys.Add(new InputKey(consoleInput, Console.GetCursorPosition().Top, Console.GetCursorPosition().Left));
+                        editor.inputKeys.Add(new InputKey(consoleInput, cursorTop, cursorLeft));
                         editor.CheckForNewRowThroughChar();
                         break;
                 }
-                //editor.RewriteText();
             } while (consoleInput.Key != ConsoleKey.Escape); //close app on ESC
         }
 
-        private void HandleBackspace()
+        private void HandleParagraphBackspace()
         {
-            //Backspace already knows to move the cursor once to the left
-            var (cursorLeft, cursorTop) = Console.GetCursorPosition();
-            int keyIndex = cursorLeft;
-            for(int i=0; i < cursorTop; i++)
+            //these should still be on the lower row
+            var (_, cursorTop) = Console.GetCursorPosition();
+
+            //enter index is on the upper row
+            int enterIndex = GetCurrentKeyIndex(0, cursorTop)-1;
+
+            //delete '/r' from inputKeys
+            inputKeys.RemoveAt(enterIndex);
+
+            //initial Number Of Columns On Upper Row Without Enter
+            int initialNoColumns = numberOfColumnsPerRow[cursorTop - 1] - 1;
+
+            //update numberOfColumnsPerRow
+            numberOfColumnsPerRow[cursorTop - 1] = initialNoColumns + numberOfColumnsPerRow[cursorTop];
+            cursorRow = cursorTop - 1;
+            Console.Clear();
+            DisplayInputKeys(0);
+            Console.Write(' ');
+            Console.SetCursorPosition(initialNoColumns, cursorRow);
+        }
+        private int GetCurrentKeyIndex(int startingPosition, int cursorTop)
+        {
+            int keyIndex = startingPosition;
+            for (int i = 0; i < cursorTop; i++)
             {
                 keyIndex += numberOfColumnsPerRow[i];
             }
-            if (keyIndex >= 0)
+            return keyIndex;
+        }
+        private void DisplayInputKeys(int startingPosition)
+        {
+            for (int i = startingPosition; i < inputKeys.Count; i++)
+                if (inputKeys[i].key.Key.ToString() == "Enter")
+                    Console.Write(" \n");
+                else Console.Write(inputKeys[i].key.KeyChar);
+        }
+        private void HandleLiniarBackspace()
+        {
+            //Backspace already knows to move the cursor once to the left
+            var (cursorLeft, cursorTop) = Console.GetCursorPosition();
+            int keyIndex = GetCurrentKeyIndex(cursorLeft, cursorTop);
+           if (keyIndex >= 0)
             {
                 inputKeys.RemoveAt(keyIndex);
                 if(cursorLeft == numberOfColumnsPerRow[cursorRow]-1)
@@ -85,11 +122,7 @@
                 }
                 else
                 {
-                    int i, offset = inputKeys.Count - cursorLeft;
-                    for(i = keyIndex; i < inputKeys.Count; i++)
-                        if(inputKeys[i].key.KeyChar == '\r')
-                            Console.Write(" \n");
-                        else Console.Write(inputKeys[i].key.KeyChar);
+                    DisplayInputKeys(keyIndex);
                     Console.Write(' ');
                     Console.SetCursorPosition(cursorLeft, cursorTop);
                 }
