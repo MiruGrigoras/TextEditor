@@ -63,7 +63,7 @@
                     default:
                         if (editor.IsAddedMidParagraph(cursorLeft, cursorTop))
                         {
-                            editor.HandleMidParagraphInsertion(consoleInput);
+                            editor.HandleMidParagraphInsertion(consoleInput, cursorLeft, cursorTop);
                         }
                         else
                         {
@@ -94,18 +94,18 @@
             Console.SetCursorPosition(0, cursorRow);
         }
 
-        private void HandleMidParagraphInsertion(ConsoleKeyInfo key)
+        private void HandleMidParagraphInsertion(ConsoleKeyInfo key, int initialCursorLeft, int initialCursorTop)
         {
             var (cursorLeft, cursorTop) = Console.GetCursorPosition();
-            int newKeyIndex = GetCurrentKeyIndex(cursorLeft, cursorTop);
+            int newKeyIndex = GetCurrentKeyIndex(initialCursorLeft, initialCursorTop);
 
             int indexOfEndChar = inputKeys.Count - 1;
             //save in the indexKeys
-            if (inputKeys[newKeyIndex - 2].key.Key.ToString() == "Enter")
+            if (inputKeys[newKeyIndex - 1].key.Key.ToString() == "Enter")
             {
-                inputKeys.Insert(newKeyIndex - 1, new InputKey(key));
+                inputKeys.Insert(newKeyIndex, new InputKey(key));
                 indexOfEndChar = GetIndexOfLastCharInParagraph(newKeyIndex);
-                DisplayInputKeys(newKeyIndex, indexOfEndChar);
+                DisplayInputKeys(newKeyIndex+1, indexOfEndChar);
             }
             else
             {
