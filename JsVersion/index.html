@@ -6,9 +6,9 @@
   let textBeforeCursor = '';
   window.addEventListener('click', function(e){   
     if (document.getElementById('container').contains(e.target)){
-      document.getElementById('textBeforeCursor').classList.add('cursor');
+      document.getElementById('cursor').style.visibility = 'visible';
     } else {
-      document.getElementById('textBeforeCursor').classList.remove('cursor');
+      document.getElementById('cursor').style.visibility = 'hidden';
     }
   });
 
@@ -21,7 +21,15 @@
         break;
       default: 
         textBeforeCursor += e.key;
-        document.getElementById("textBeforeCursor").innerHTML += e.key;
+        const textElem = document.getElementById("textBeforeCursor");
+        const containerElem = document.getElementById("container");
+        textElem.innerHTML += e.key; 
+        if(textElem.getBoundingClientRect().width > containerElem.clientWidth - 10){ //-10 because 5px padding left and right
+          textElem.innerHTML = textElem.innerHTML.slice(0, -1);;
+          textElem.innerHTML += "<br />";
+          textElem.innerHTML += e.key; 
+        }
+          
     }
   });
 
@@ -30,7 +38,8 @@
 <html>
   <body>
     <div class="container" id="container">
-      <span class="cursor" id="textBeforeCursor"></span>
+      <span id="textBeforeCursor"></span>
+      <span class="cursor" id="cursor"></span>
     </div>
   </body>
 </html>
