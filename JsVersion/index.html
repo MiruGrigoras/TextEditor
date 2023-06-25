@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<link rel="stylesheet" href="style.css" />
+<script type="text/javascript" src="script.js"></script>
+
+<script>
+  // function handleClick(e) {
+  //   if (document.getElementById('container')==(e.target)) {
+  //     editText();
+  //   } else {
+  //     document.getElementById('cursor').style.visibility = 'hidden';
+  //   }
+  // }
+
+  window.addEventListener('click', function(e){   
+    if (document.getElementById('container').contains(e.target)){
+      editText();
+    } else {
+      document.getElementById('textBeforeCursor').classList.remove('cursor');
+    }
+  });
+
+  function editText() {
+    document.getElementById('textBeforeCursor').classList.add('cursor');
+  }
+
+</script>
+
+<html>
+  <body onclick="handleClick()">
+    <!-- <div class="container" id="container" onkeydown="handleKey()">
+      <div class="cursor" id="cursor">|</div>
+    </div> -->
+    <div class="container" id="container" onkeydown="handleKey()">
+      <div class="cursor" id="textBeforeCursor">hiii whats up</div>
+    </div>
+  </body>
+</html>
